@@ -1,0 +1,143 @@
+---
+title: "Final"
+author: "Kelsey Bernard"
+date: "2022-08-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+
+library(tidyverse)
+library(caret)
+library(readr)
+library(klaR)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(Hmisc)
+
+```
+
+```{r}
+#loading the dataset 
+AkimelOodhamDiabetes <- read_csv("PimaDiabetes.csv")
+
+AkimelOodhamDiabetes$Outcome <- as.factor(AkimelOodhamDiabetes$Outcome)
+head(AkimelOodhamDiabetes)
+summary(AkimelOodhamDiabetes)
+#missing values are coded as 0 instead of NA, how many missing values for each column ?
+sapply(AkimelOodhamDiabetes, function(x) sum(x == 0))
+
+```
+
+
+
+
+```{r}
+#plot distrubtion of variables from the oringial dataset -blood pressure  
+AkimelOodhamDiabetes %>% 
+ggplot(aes(x = BloodPressure))+
+  geom_histogram()
+```
+
+```{r}
+#plot distrubtion of variables from the oringial dataset -skin thickness
+AkimelOodhamDiabetes %>% 
+ggplot(aes(x= SkinThickness ))+
+  geom_histogram()
+```
+
+
+
+
+```{r}
+#For original dataset- Using the caret package, partition the data 80/20, by outcome (diabetes or not).
+set.seed(123)
+trainIndex <- createDataPartition(AkimelOodhamDiabetes$Outcome, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+#store as training and testing sets, respectively 
+AOTrain1 <- AkimelOodhamDiabetes[ trainIndex,]
+AOTest1  <- AkimelOodhamDiabetes[-trainIndex,]
+```
+
+```{r}
+#Create Naive Bayes model
+
+AOModel1 <- NaiveBayes(Outcome ~ ., data = AOTrain1)
+predictModelTrain1 <- predict(AOModel1)
+predictTest1 <- predict(AOModel1, AOTest1)
+opar = par(mfrow=c(2, 2))
+plot(AOModel1)
+par(opar)
+```
+
+```{r}
+tab <- table(predictTest1$class, AOTest1$Outcome)
+caret::confusionMatrix(tab)  
+```
+
+
+```{r}
+# Plot the confusion matrix
+AOModel1$predictTest1 <- predictTest1$class
+ggplot(AOTest1, aes(Outcome, predictTest1$class)) +
+  geom_jitter(width = 0.2, height = 0.1, size=2) +
+  labs(title="Confusion Matrix", 
+       subtitle="Predicted vs. Observed Rates of Diabetes Based on Naive Bayes Model", 
+       y="Predicted", 
+       x="Observed",
+       caption="Model one")
+```
+```{r} 
+#create a filtered dataset removing the zero value from any column where 0 would be physiologically impossible 
+AkmeilOodamDiabetes2 <- AkimelOodhamDiabetes
+T2_filtered <-AkmeilOodamDiabetes2 %>%
+  filter(Glucose != 0, BloodPressure!= 0, SkinThickness != 0, BMI != 0, Age != 0)
+```
+
+```{r}
+#plot distrubtion of variables from the filtered dataset -blood pressure  
+T2_filtered %>% 
+ggplot(aes(x = BloodPressure))+
+  geom_histogram()
+```
+
+```{r}
+#plot distrubtion of variables from the oringial dataset -skin thickness
+T2_filtered %>% 
+ggplot(aes(x= SkinThickness ))+
+  geom_histogram()
+
+```
+
+
+```{r}
+#For filtered dataset- Using the caret package, partition the data 80/20, by outcome (diabetes or not).
+set.seed(123)
+trainIndex <- createDataPartition(T2_filtered$Outcome, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+#store as training and testing sets, respectively 
+T2AOtrain <- T2_filtered[ trainIndex,]
+T2AOtest  <- T2_filtered[-trainIndex,]
+```
+
+```{r} 
+#apply Naive Bayes algorithm to the filtered dataset
+T2AOModel <- NaiveBayes(Outcome ~ ., data = T2AOtrain)
+T2predictModelTrain <- predict(T2AOModel)
+T2predictAOTest <- predict(T2AOModel, T2AOtest)
+opar2 = par(mfrow=c(2, 2))
+plot(T2AOModel)
+par(opar2)
+```
+
+```{r}
+tab2 <- table(T2predictAOTest$class, T2AOtest$Outcome)
+caret::confusionMatrix(tab2)  
+```
+
+
+
